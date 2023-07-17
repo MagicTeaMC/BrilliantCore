@@ -1,0 +1,169 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maoyue <95519633+MagicTeaMC@users.noreply.github.com>
+Date: Tue, 18 Jul 2023 00:01:10 +0800
+Subject: [PATCH] Unlocking-TPS-Limits
+
+
+diff --git a/src/main/java/com/destroystokyo/paper/gui/RAMDetails.java b/src/main/java/com/destroystokyo/paper/gui/RAMDetails.java
+index fa56cd09102a89692b42f1d14257990508c5c720..78d9c80412f511de66b95c4d3bdf788d76f5e8e6 100644
+--- a/src/main/java/com/destroystokyo/paper/gui/RAMDetails.java
++++ b/src/main/java/com/destroystokyo/paper/gui/RAMDetails.java
+@@ -81,6 +81,6 @@ public class RAMDetails extends JList<String> {
+     }
+ 
+     private static String format(double tps) {
+-        return ( ( tps > 21.0 ) ? "*" : "" ) + Math.min( Math.round( tps * 100.0 ) / 100.0, 20.0 );
++        return ( ( tps > (MinecraftServer.TPS * 1.05) ) ? "*" : "" ) + Math.min( Math.round( tps * 100.0 ) / 100.0, MinecraftServer.TPS );
+     }
+ }
+diff --git a/src/main/java/engineer/skyouo/core/BrilliantConfig.java b/src/main/java/engineer/skyouo/core/BrilliantConfig.java
+index a52a625f0e0e9a3f6b799f43c926adbb47bfa7a8..68d921f81f7ff34aa7d25aec68f8b5b4443bf162 100644
+--- a/src/main/java/engineer/skyouo/core/BrilliantConfig.java
++++ b/src/main/java/engineer/skyouo/core/BrilliantConfig.java
+@@ -145,4 +145,8 @@ public class BrilliantConfig {
+         }
+         return builder.build();
+     }
++    public static int tpsLimit = 20;
++    private static void setTpsLimit() {
++        tpsLimit = getInt("tps.limit", tpsLimit);
++    }
+ }
+diff --git a/src/main/java/io/papermc/paper/command/MSPTCommand.java b/src/main/java/io/papermc/paper/command/MSPTCommand.java
+index 8b5293b0c696ef21d0101493ffa41b60bf0bc86b..704839ae9a67ee94634f7422a0258cc4cd95879d 100644
+--- a/src/main/java/io/papermc/paper/command/MSPTCommand.java
++++ b/src/main/java/io/papermc/paper/command/MSPTCommand.java
+@@ -97,6 +97,6 @@ public final class MSPTCommand extends Command {
+     }
+ 
+     private static Component getColor(double avg) {
+-        return text(DF.format(avg), avg >= 50 ? RED : avg >= 40 ? YELLOW : GREEN);
++        return text(DF.format(avg), avg >= MinecraftServer.MS_PER_TICK ? RED : avg >= (MinecraftServer.MS_PER_TICK * 0.8) ? YELLOW : GREEN);
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 43d42e361440e3abc289ba03c3a69f64fc098a40..67f483225bcba34189c36f53543fb3691371e246 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import engineer.skyouo.core.BrilliantConfig;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import java.awt.image.BufferedImage;
+@@ -202,7 +203,6 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public static final String VANILLA_BRAND = "vanilla";
+     private static final float AVERAGE_TICK_TIME_SMOOTHING = 0.8F;
+     private static final int TICK_STATS_SPAN = 100;
+-    public static final int MS_PER_TICK = 50;
+     private static final int OVERLOADED_THRESHOLD = 2000;
+     private static final int OVERLOADED_WARNING_INTERVAL = 15000;
+     private static final long STATUS_EXPIRE_TIME_NS = 5000000000L;
+@@ -300,9 +300,10 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public boolean forceTicks; // Paper
+     // CraftBukkit end
+     // Spigot start
+-    public static final int TPS = 20;
+-    public static final int TICK_TIME = 1000000000 / MinecraftServer.TPS;
+-    private static final int SAMPLE_INTERVAL = 20; // Paper
++    public static final int TPS = BrilliantConfig.tpsLimit; // Brilliant
++    public static final int TICK_TIME = 1000000000 / MinecraftServer.TPS; // Brilliant
++    public static final double MS_PER_TICK = (double) 1000 / BrilliantConfig.tpsLimit; // Brilliant
++    private static final int SAMPLE_INTERVAL = BrilliantConfig.tpsLimit; // Paper // Brilliant
+     public final double[] recentTps = new double[ 3 ];
+     // Spigot end
+     public final io.papermc.paper.configuration.PaperConfigurations paperConfigurations;
+@@ -1134,12 +1135,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 // Paper end - rewrite chunk system
+                 long i = ((curTime = System.nanoTime()) / (1000L * 1000L)) - this.nextTickTime; // Paper
+ 
+-                if (i > 5000L && this.nextTickTime - this.lastOverloadWarning >= 30000L) { // CraftBukkit
+-                    long j = i / 50L;
++                if (i > (100L * MS_PER_TICK) && this.nextTickTime - this.lastOverloadWarning >= (600L * MS_PER_TICK)) { // CraftBukkit
++                    double j = i / MS_PER_TICK; // Brilliant - int to double
+ 
+                     if (this.server.getWarnOnOverload()) // CraftBukkit
+-                    MinecraftServer.LOGGER.warn("Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind", i, j);
+-                    this.nextTickTime += j * 50L;
++                        MinecraftServer.LOGGER.warn("Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind", i, j);
++                    this.nextTickTime += j * MS_PER_TICK;
+                     this.lastOverloadWarning = this.nextTickTime;
+                 }
+ 
+@@ -1167,13 +1168,13 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+ 
+                 //MinecraftServer.currentTick = (int) (System.currentTimeMillis() / 50); // CraftBukkit // Paper - don't overwrite current tick time
+                 lastTick = curTime;
+-                this.nextTickTime += 50L;
++                this.nextTickTime += MS_PER_TICK;
+                 this.startMetricsRecordingTick();
+                 this.profiler.push("tick");
+                 this.tickServer(this::haveTime);
+                 this.profiler.popPush("nextTickWait");
+                 this.mayHaveDelayedTasks = true;
+-                this.delayedTasksMaxNextTickTime = Math.max(Util.getMillis() + 50L, this.nextTickTime);
++                this.delayedTasksMaxNextTickTime = (long) Math.max(Util.getMillis() + MS_PER_TICK, this.nextTickTime);
+                 this.waitUntilNextTick();
+                 this.profiler.pop();
+                 this.endMetricsRecordingTick();
+@@ -1394,7 +1395,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+ 
+         ++this.tickCount;
+         this.tickChildren(shouldKeepTicking);
+-        if (i - this.lastServerStatus >= 5000000000L) {
++        if (i - this.lastServerStatus >= (MS_PER_TICK * 100000000L)) {
+             this.lastServerStatus = i;
+             this.status = this.buildServerStatus();
+         }
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 85d6635da9e7cb896d5d507dd9f8fb5d092a740e..c5aa5f953fb80c669b91f7a76d50da18133b669d 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -361,7 +361,7 @@ public class ServerGamePacketListenerImpl implements ServerPlayerConnection, Tic
+         ++this.tickCount;
+         this.knownMovePacketCount = this.receivedMovePacketCount;
+         if (this.clientIsFloating && !this.player.isSleeping() && !this.player.isPassenger() && !this.player.isDeadOrDying()) {
+-            if (++this.aboveGroundTickCount > 80) {
++            if (++this.aboveGroundTickCount > MinecraftServer.TPS * 4) {
+                 ServerGamePacketListenerImpl.LOGGER.warn("{} was kicked for floating too long!", this.player.getName().getString());
+                 this.disconnect(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.flyingPlayer, org.bukkit.event.player.PlayerKickEvent.Cause.FLYING_PLAYER); // Paper - use configurable kick message & kick event cause
+                 return;
+@@ -380,7 +380,7 @@ public class ServerGamePacketListenerImpl implements ServerPlayerConnection, Tic
+             this.vehicleLastGoodY = this.lastVehicle.getY();
+             this.vehicleLastGoodZ = this.lastVehicle.getZ();
+             if (this.clientVehicleIsFloating && this.player.getRootVehicle().getControllingPassenger() == this.player) {
+-                if (++this.aboveGroundVehicleTickCount > 80) {
++                if (++this.aboveGroundVehicleTickCount > MinecraftServer.TPS * 4) {
+                     ServerGamePacketListenerImpl.LOGGER.warn("{} was kicked for floating a vehicle too long!", this.player.getName().getString());
+                     this.disconnect(io.papermc.paper.configuration.GlobalConfiguration.get().messages.kick.flyingVehicle, org.bukkit.event.player.PlayerKickEvent.Cause.FLYING_VEHICLE); // Paper - use configurable kick message & kick event cause
+                     return;
+diff --git a/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+index 878001928327d92423d5f7f6d5ce8772d6fa477f..796cac89704ea9fda3740ba2af28bc4636e3df07 100644
+--- a/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerLoginPacketListenerImpl.java
+@@ -95,7 +95,7 @@ public class ServerLoginPacketListenerImpl implements ServerLoginPacketListener,
+             }
+         }
+ 
+-        if (this.tick++ == 600) {
++        if (this.tick++ == 30 * MinecraftServer.TPS) {
+             this.disconnect(Component.translatable("multiplayer.disconnect.slow_login"));
+         }
+ 
+diff --git a/src/main/java/org/spigotmc/TicksPerSecondCommand.java b/src/main/java/org/spigotmc/TicksPerSecondCommand.java
+index bf970bf3356a914459c2d6db93537ce2d32c7e18..d74a2840632b5b891633be59d1e41b6d9bbf36cb 100644
+--- a/src/main/java/org/spigotmc/TicksPerSecondCommand.java
++++ b/src/main/java/org/spigotmc/TicksPerSecondCommand.java
+@@ -61,8 +61,8 @@ public class TicksPerSecondCommand extends Command
+     private static net.kyori.adventure.text.Component format(double tps) // Paper - Made static
+     {
+         // Paper
+-        net.kyori.adventure.text.format.TextColor color = ( ( tps > 18.0 ) ? net.kyori.adventure.text.format.NamedTextColor.GREEN : ( tps > 16.0 ) ? net.kyori.adventure.text.format.NamedTextColor.YELLOW : net.kyori.adventure.text.format.NamedTextColor.RED );
+-        String amount = Math.min(Math.round(tps * 100.0) / 100.0, 20.0) + (tps > 21.0  ? "*" : ""); // Paper - only print * at 21, we commonly peak to 20.02 as the tick sleep is not accurate enough, stop the noise
++        net.kyori.adventure.text.format.TextColor color = ( ( tps > (MinecraftServer.TPS * 0.9) ) ? net.kyori.adventure.text.format.NamedTextColor.GREEN : ( tps > (MinecraftServer.TPS * 0.8) ) ? net.kyori.adventure.text.format.NamedTextColor.YELLOW : net.kyori.adventure.text.format.NamedTextColor.RED );
++        String amount = String.valueOf(Math.min(Math.round(tps * 100.0) / 100.0, 20.0)); // Paper - only print * at 21, we commonly peak to 20.02 as the tick sleep is not accurate enough, stop the noise
+         return net.kyori.adventure.text.Component.text(amount, color);
+         // Paper end
+     }
