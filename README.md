@@ -1,5 +1,5 @@
-# BrilliantCore
-基於 Pufferfish 開發而成的分支核心
+# BrilliantPurpur
+基於 Purpur 開發而成的分支核心
 ## 功能
 - 無限 TPS
 ## 下載
