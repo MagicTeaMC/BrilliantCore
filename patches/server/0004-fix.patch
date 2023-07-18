@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Maoyue <95519633+MagicTeaMC@users.noreply.github.com>
+Date: Tue, 18 Jul 2023 11:01:09 +0800
+Subject: [PATCH] fix
+
+
+diff --git a/src/main/java/net/minecraft/server/Main.java b/src/main/java/net/minecraft/server/Main.java
+index dfd31b15e3175388870c9c5a127abd2f7429f0f3..837418942c1ce597afa02764306f907f42513aca 100644
+--- a/src/main/java/net/minecraft/server/Main.java
++++ b/src/main/java/net/minecraft/server/Main.java
+@@ -77,12 +77,11 @@ public class Main {
+ 
+     private static final Logger LOGGER = LogUtils.getLogger();
+ 
+-    engineer.skyouo.core.BrilliantConfig.init(); // Brilliant - Load before MinecraftServer was created
+-
+     public Main() {}
+ 
+     @DontObfuscate
+     public static void main(final OptionSet optionset) { // CraftBukkit - replaces main(String[] astring)
++        engineer.skyouo.core.BrilliantConfig.init(); // Brilliant - Load before MinecraftServer was created
+         SharedConstants.tryDetectVersion();
+         /* CraftBukkit start - Replace everything
+         OptionParser optionparser = new OptionParser();
