@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Maoyue <95519633+MagicTeaMC@users.noreply.github.com>
-Date: Mon, 17 Jul 2023 22:38:32 +0800
+Date: Wed, 18 Oct 2023 19:20:53 +0800
 Subject: [PATCH] Brilliant Config And Command
 
 
@@ -220,20 +220,19 @@ index 0000000000000000000000000000000000000000..a52a625f0e0e9a3f6b799f43c926adbb
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/Main.java b/src/main/java/net/minecraft/server/Main.java
-index dae36c6452ccd57a436dd918547b64d59957ab0a..dfd31b15e3175388870c9c5a127abd2f7429f0f3 100644
+index ec268189b19b6fa5c4521f96ce211a531db35ec5..20a74e50d329b12dddaae46e4a596571f7bf679a 100644
 --- a/src/main/java/net/minecraft/server/Main.java
 +++ b/src/main/java/net/minecraft/server/Main.java
-@@ -77,6 +77,8 @@ public class Main {
- 
-     private static final Logger LOGGER = LogUtils.getLogger();
- 
-+    engineer.skyouo.core.BrilliantConfig.init(); // Brilliant - Load before MinecraftServer was created
-+
-     public Main() {}
+@@ -79,6 +79,7 @@ public class Main {
  
      @DontObfuscate
+     public static void main(final OptionSet optionset) { // CraftBukkit - replaces main(String[] astring)
++        engineer.skyouo.core.BrilliantConfig.init(); // Brilliant - Load before MinecraftServer was created
+         SharedConstants.tryDetectVersion();
+         /* CraftBukkit start - Replace everything
+         OptionParser optionparser = new OptionParser();
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 28af96ce4f9f1a83316b6fd9e1625c71b5874c3f..445cca719f1ae8b5b8a2a2c209389d5f864ca45c 100644
+index 66aeb0ea388a8c8a08cf33728921061a0c74552f..0785b5f06e1f1d01c8d06ac0d49769f3f991397d 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -224,6 +224,8 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
