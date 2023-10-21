@@ -1,5 +1,5 @@
 # BrilliantCore
-A forked core developed based on Pufferfish
+A Pufferfish fork.
 ## Features
 - Customizable TPS limit
 ## Download
