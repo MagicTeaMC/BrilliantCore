@@ -1,4 +1,3 @@
-# This been a vanilla feature since 1.20.3, so I won't update it any more 
 # BrilliantCore
 A Pufferfish fork.
 ## Features
